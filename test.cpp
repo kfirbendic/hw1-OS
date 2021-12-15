@@ -7,7 +7,7 @@
 #include <signal.h>
 #include <iostream>
 using namespace std;
-int main(){
+int test(){
 	cout << "start ";
 	sleep(20);
 	cout << "finish";

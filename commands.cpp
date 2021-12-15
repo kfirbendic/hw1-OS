@@ -11,7 +11,7 @@ using namespace std;
 extern list <Job> jobs;
 char* prev_path = new char[MAX_LINE_SIZE]; // this is the previous path - used in "cd"
 list <string> history_list;
-
+extern Job fg_job;
 
 
 void delete_finished_jobs_from_list(){
@@ -62,7 +62,7 @@ int ExeCmd(char* lineSize, char* cmdString)
 {
 	char* cmd; 
 	char* args[MAX_ARG];
-	char pwd[MAX_LINE_SIZE];
+	//char pwd[MAX_LINE_SIZE];
 	const char* delimiters = " \t\n"; 
 	int i = 0, num_arg = 0;
 	bool illegal_cmd = false; // illegal command
@@ -110,12 +110,12 @@ int ExeCmd(char* lineSize, char* cmdString)
 				strcpy(prev_path,current_path);
 			}
 			// error in path
-			if(args[1] != "-" && chdir(args[1]) == -1 ){ //this also changes the path if success
+			if(!strcmp(args[1],"-") && chdir(args[1]) == -1 ){ //this also changes the path if success
 				printf("smash error:>\"%s\"-No such file or directory\n", args[1]);
 				return 0;
 			}
 			// go back to previous path
-			else if (args[1] == "-"){
+			else if (strcmp(args[1],"-")){
 				chdir(prev_path);
 				printf("%s", prev_path );
 				strcpy(prev_path,current_path);
@@ -212,7 +212,7 @@ int ExeCmd(char* lineSize, char* cmdString)
  			}
  			if(kill(selected_job.pid,sig_num) == -1){
  				printf("‫‪smash‬‬ ‫‪error:‬‬ >‬ ‫‪kill‬‬ %d ‫–‬ cannot send signal\n",job_num);
- 				perror("");
+ 				//perror("");
  				return -1;
  			}
 
@@ -249,7 +249,8 @@ int ExeCmd(char* lineSize, char* cmdString)
 					kill((jobs.back()).pid, SIGCONT);
 				}
 				cout << last_job.name << "\n";
-				waitpid(last_job.pid, NULL, 0); //wait for it to end aka fg
+				fg_job = jobs.back();
+				waitpid(last_job.pid, NULL, WUNTRACED); //wait for it to end aka fg
 
 			}
 			else if (num_arg == 1){ //take according to job num
@@ -261,7 +262,6 @@ int ExeCmd(char* lineSize, char* cmdString)
 					index++;
 					if(index == job_num){
 						selected_job = *it;
-
 						if(it->stop_f == true){ //the proccess was in stop
 							it->stop_f = false;
 							kill(it->pid, SIGCONT);
@@ -280,7 +280,10 @@ int ExeCmd(char* lineSize, char* cmdString)
 				}
 
 				cout << selected_job.name << "\n";
-				waitpid(selected_job.pid, NULL, 0); //wait for it to end aka fg
+				//cout << "watinig for proccess to stop or exit\n";
+				fg_job = selected_job;
+				waitpid(selected_job.pid, NULL, WUNTRACED); //wait for it to end or stop aka fg
+				//cout << "proccess stopped or exited\n";
 				delete_finished_jobs_from_list();
 				return 0;
 			}
@@ -304,6 +307,7 @@ int ExeCmd(char* lineSize, char* cmdString)
 				else{ //resume the last job (stopped) to run in background
 					cout << last_job.name << "\n";
 					(jobs.back()).stop_f = false;
+
 					kill(last_job.pid, SIGCONT);
 				}
 			}
@@ -315,17 +319,21 @@ int ExeCmd(char* lineSize, char* cmdString)
 				for(it = jobs.begin(); it != jobs.end(); it++ ){
 					index++;
 					if(index == job_num){
+						//cout << job_num << " " << index;
 						selected_job = *it;
+						break;
 					}
 
-					if(selected_job.stop_f == false){ // the last job is ruuning in background - error
-						printf("ERROR: The job is already running in background\n");
-						}
-					else{ //resume the last job (stopped) to run in background
-						//cout << it->name << "\n";
-						(jobs.back()).stop_f = false;
-						kill(it->pid, SIGCONT);
-					}
+
+				}
+				if(selected_job.stop_f == false){ // the last job is ruuning in background - error
+					printf("ERROR: The job is already running in background\n");
+				}
+				else{ //resume the job (stopped) to run in background
+					//cout << "continue" << "\n";
+					it->stop_f = false;
+					//cout << selected_job.pid;
+					kill(selected_job.pid, SIGCONT);
 				}
 				if(selected_job.pid == 0){
 					if(index == 0){
@@ -334,11 +342,11 @@ int ExeCmd(char* lineSize, char* cmdString)
 					else{
 					printf("ERROR: job does not exist, did you mean job [%d] (last job in list)\n",index) ;
 					}
-					//return 1; // ******RETURN THIS LINE AFTER DONE DEBUGGING ******
+					return 1; // ******UNCOMMEN THIS LINE AFTER DONE DEBUGGING ******
 				}
 				cout << selected_job.name << "\n";
 
-
+				/*
 				// FOR DEBBUGING ONLY (ctrl c, ctrl z)
 						if(job_num == 101){ //stop the last proccess
 							kill((jobs.back()).pid,SIGSTOP);
@@ -350,6 +358,7 @@ int ExeCmd(char* lineSize, char* cmdString)
 							//(jobs.back()).stop_f = true;
 						}
 				//----------------------
+				*/
 				return 0;
 			}
 
@@ -448,9 +457,11 @@ void ExeExternal(char *args[MAX_ARG], char* cmdString)
 			default:
                 Job new_job(jobs, args[0],pID);
 				new_job.stop_f = false;
+
                 jobs.push_back(new_job);
                 delete_finished_jobs_from_list();
                // cout << "created new job - " << new_job.name << "\n";
+                fg_job = new_job;
                 waitpid(pID, NULL, WUNTRACED);
                 break;
 				// Add your code here
@@ -471,7 +482,7 @@ int BgCmd(char* lineSize)
 
 
 	//cout << "bgcmd\n";
-	char* Command;
+	//char* Command;
 	const char* delimiters = " \t\n";
 	char *args[MAX_ARG];
 
@@ -522,6 +533,7 @@ int BgCmd(char* lineSize)
 						 Job new_bg_job(jobs,bg,pID);
 
 						 new_bg_job.stop_f = false;
+
 						 jobs.push_back(new_bg_job);
 						 //cout << "new bg job " << jobs.back().name << "\n";
 						 delete_finished_jobs_from_list();

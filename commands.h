@@ -24,6 +24,7 @@ public:
 	pid_t pid;
 	time_t start_time;
 	bool stop_f;
+	bool fg_f;
 
 
 	//c'tor
@@ -32,6 +33,7 @@ public:
 		this->pid = pid;
 		time(&(this->start_time));
 		this->stop_f = false;
+
 	}
 
 	//copy c'tor

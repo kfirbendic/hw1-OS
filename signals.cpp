@@ -18,17 +18,38 @@
 using namespace std;
 
 extern list <Job> jobs;
+extern Job fg_job;
 
 void CTRL_C(int sig_num){
-	kill((jobs.back()).pid,SIGINT);
-	delete_finished_jobs_from_list();
 	cout << "\n";
+	if(jobs.empty() == 1) { return; }
 
+	if(  fg_job.pid == 0 || kill(fg_job.pid,SIGINT) != 0){ // signal problem or no job in fg
+		//cout << "this is exiting";
+		return;
+	}
+	delete_finished_jobs_from_list();
 }
 
 void CTRL_Z(int sig_num){
-	kill((jobs.back()).pid,SIGTSTP);
-	(jobs.back()).stop_f = true;
+
+	if(jobs.empty() == 1) {
+		//cout << "\n";
+		return;
+	}
+
+
+	if( fg_job.pid == 0 || kill(fg_job.pid,SIGTSTP) != 0){
+		return;
+	}
+	std::list<Job>::iterator it;
+	for(it = jobs.begin(); it != jobs.end(); it++ ){ //find the right job
+		if(fg_job.pid == it->pid){
+			it->stop_f = true; // update job is stopped in list
+			fg_job.pid = 0; // update fg_job to no job
+			break;
+		}
+	}
 	cout << "\n";
 }
 /*
