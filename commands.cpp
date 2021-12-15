@@ -323,8 +323,6 @@ int ExeCmd(char* lineSize, char* cmdString)
 						selected_job = *it;
 						break;
 					}
-
-
 				}
 				if(selected_job.stop_f == false){ // the last job is ruuning in background - error
 					printf("ERROR: The job is already running in background\n");
@@ -371,7 +369,31 @@ int ExeCmd(char* lineSize, char* cmdString)
 	/*************************************************/
 	else if (!strcmp(cmd, "quit"))
 	{
-   		exit(0);
+		if(num_arg>1){
+					illegal_cmd = true;
+		}
+		else if(num_arg == 0){
+			exit(0);
+		}
+		else if (strcmp(args[1], "kill") == 0){ // quit kill
+			std::list<Job>::iterator it;
+			int index = 1;
+			for(it = jobs.begin(); it != jobs.end(); it++ ){
+				time_t send_time;
+				kill(it->pid,SIGTERM);
+				time(&send_time);
+				cout << "["<< index++ << "] " << it->name << " - Sending SIGTERM... " << flush;
+				while(time(NULL) < send_time+5); // wait 5 secs
+				if(waitpid(it->pid, NULL, WNOHANG) != 0){ // if signal didnt terminate
+					kill(it->pid,SIGKILL);
+					cout << "(5 sec passed) Sending SIGKILL... ";
+				}
+				cout << "Done\n" << flush;
+
+			}
+		}
+		exit(0);
+
 	} 	
 	/*************************************************/
 	else if (!strcmp(cmd, "diff"))

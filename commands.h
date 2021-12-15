@@ -24,7 +24,7 @@ public:
 	pid_t pid;
 	time_t start_time;
 	bool stop_f;
-	bool fg_f;
+
 
 
 	//c'tor
