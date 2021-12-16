@@ -32,6 +32,7 @@ void CTRL_C(int sig_num){
 }
 
 void CTRL_Z(int sig_num){
+	cout << "\n";
 
 	if(jobs.empty() == 1) {
 		//cout << "\n";
@@ -50,7 +51,6 @@ void CTRL_Z(int sig_num){
 			break;
 		}
 	}
-	cout << "\n";
 }
 /*
 string sig_num_to_sig_name(int sig_num) {

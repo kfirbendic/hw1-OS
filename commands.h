@@ -65,7 +65,7 @@ public:
 
 
 //int ExeComp(char* lineSize);
-int BgCmd(char* lineSize);
+int BgCmd(char* lineSize, char* cmdString);
 int ExeCmd(char* lineSize, char* cmdString);
 void ExeExternal(char *args[MAX_ARG], char* cmdString);
 #endif

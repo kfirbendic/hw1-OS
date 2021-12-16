@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
 					// perform a complicated Command
 		//if(!ExeComp(lineSize)) continue;
 					// background command	
-	 	if(!BgCmd(lineSize)) continue;
+	 	if(!BgCmd(lineSize,cmdString)) continue;
 					// built in commands
 		ExeCmd(lineSize, cmdString);
 		

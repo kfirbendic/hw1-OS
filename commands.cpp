@@ -84,11 +84,12 @@ int ExeCmd(char* lineSize, char* cmdString)
 /*************************************************/
 	if (!strcmp(cmd, "pwd") ) 
 	{
+		add_cmd_to_history(cmdString);
 		if (num_arg == 0){
 			char* curr_dir = get_current_dir_name(); // get_current_dir_name return char*
 			if(curr_dir != NULL){ // if malloc succeed
 				printf("%s \n",curr_dir);
-				add_cmd_to_history(cmdString);
+
 				return 0;
 
 			}
@@ -99,25 +100,26 @@ int ExeCmd(char* lineSize, char* cmdString)
 		else{
 			illegal_cmd = true;
 		}
-		return 1;
+
 	}	
 	/*************************************************/
 	else if (!strcmp(cmd, "cd")) 
 		{
+		add_cmd_to_history(cmdString);
 		if(num_arg != 0){
 			char* current_path = get_current_dir_name();
 			if(prev_path == NULL){
 				strcpy(prev_path,current_path);
 			}
 			// error in path
-			if(!strcmp(args[1],"-") && chdir(args[1]) == -1 ){ //this also changes the path if success
+			if(strcmp(args[1],"-")!=0 && chdir(args[1]) == -1 ){ //this also changes the path if success
 				printf("smash error:>\"%s\"-No such file or directory\n", args[1]);
 				return 0;
 			}
 			// go back to previous path
-			else if (strcmp(args[1],"-")){
+			else if (strcmp(args[1],"-") == 0){
 				chdir(prev_path);
-				printf("%s", prev_path );
+				printf("%s\n", prev_path );
 				strcpy(prev_path,current_path);
 
 			}
@@ -127,7 +129,6 @@ int ExeCmd(char* lineSize, char* cmdString)
 		}
 		else{
 			illegal_cmd = true;
-			return 0;
 		}
 	} 
 
@@ -135,27 +136,28 @@ int ExeCmd(char* lineSize, char* cmdString)
 	/*************************************************/
 	else if (!strcmp(cmd, "history"))
 	{
+
 		if(num_arg == 0){
 			if (history_list.size() != 0){
 				list <string> :: iterator it;
 				for (it = history_list.begin(); it != history_list.end(); ++it){
-					cout << '\t' << *it;
+					cout << '\t' << *it << "\n";
 				}
-				cout << '\n';
+				//cout << '\n';
 			}
-			add_cmd_to_history(cmdString);
 			return 0;
 		}
 		else{
 			illegal_cmd = true;
 		}
-		return 1;
+		add_cmd_to_history(cmdString);
 	}
 	/*************************************************/
 	else if (!strcmp(cmd, "jobs")) 
 	{
+		add_cmd_to_history(cmdString);
 		if(num_arg != 0){
-			perror("ERROR: command \"jobs\" has too many arguments" );
+			illegal_cmd = true;
 		}
 		else{
 			//delete finished jobs from list
@@ -176,15 +178,13 @@ int ExeCmd(char* lineSize, char* cmdString)
 				index++;
 			}
 		}
-		return 0;
-
 	}
 	/*************************************************/
 	else if (!strcmp(cmd, "kill")) 
 	{
+		add_cmd_to_history(cmdString);
  		if(num_arg != 2){
- 			perror("ERROR");
- 			return 1;
+ 			illegal_cmd = true;
  		}
  		else{
  			int sig_num = -(atoi(args[1]));
@@ -202,41 +202,35 @@ int ExeCmd(char* lineSize, char* cmdString)
 			}
 
  			if(selected_job.pid == 0){
- 				if(index == 0){
- 					printf("smash‬‬ ‫‪error:‬‬ no jobs in list\n") ;
- 				}
- 				else{
  					printf("‫‪smash‬‬ ‫‪error:‬‬ >‬ ‫‪kill‬‬ %d ‫–‬ ‫‪job‬‬ ‫‪does‬‬ ‫‪not‬‬ ‫‪exist\n‬‬",job_num) ;
- 				}
  				return -1;
  			}
- 			if(kill(selected_job.pid,sig_num) == -1){
+ 			else if(kill(selected_job.pid,sig_num) == -1){
  				printf("‫‪smash‬‬ ‫‪error:‬‬ >‬ ‫‪kill‬‬ %d ‫–‬ cannot send signal\n",job_num);
  				//perror("");
  				return -1;
  			}
 
-
  		}
- 		return 0;
+
 
 	}
 	/*************************************************/
 	else if (!strcmp(cmd, "showpid")) 
 	{
 		if(num_arg ==0){
-			cout << "smash pid is" << getpid() <<endl;
-			add_cmd_to_history(cmdString);
+			cout << "smash pid is " << getpid() <<endl;
 			return 0;
 		}
 		else{
 			illegal_cmd = true;
 		}
-		return 1;
+
 	}
 	/*************************************************/
 	else if (!strcmp(cmd, "fg")) 
 	{
+		add_cmd_to_history(cmdString);
 		if(num_arg>1){
 			illegal_cmd = true;
 		}
@@ -248,10 +242,13 @@ int ExeCmd(char* lineSize, char* cmdString)
 					(jobs.back()).stop_f = false;
 					kill((jobs.back()).pid, SIGCONT);
 				}
+				if(jobs.empty()){
+					printf("smash error: > \"%s\"\n", cmdString);
+					return 1;
+				}
 				cout << last_job.name << "\n";
 				fg_job = jobs.back();
 				waitpid(last_job.pid, NULL, WUNTRACED); //wait for it to end aka fg
-
 			}
 			else if (num_arg == 1){ //take according to job num
 				int job_num = atoi(args[1]);
@@ -269,13 +266,8 @@ int ExeCmd(char* lineSize, char* cmdString)
 					}
 
 				}
-				if(selected_job.pid == 0){
-					if(index == 0){
-						printf("ERROR: no jobs in list") ;
-					}
-					else{
-						printf("ERROR: job does not exist, did you mean job [%d] (last job in list)",index) ;
-						}
+				if(selected_job.pid == 0 || jobs.empty()){
+					printf("smash error: > \"%s\"\n", cmdString);
 					return 1;
 				}
 
@@ -285,7 +277,6 @@ int ExeCmd(char* lineSize, char* cmdString)
 				waitpid(selected_job.pid, NULL, WUNTRACED); //wait for it to end or stop aka fg
 				//cout << "proccess stopped or exited\n";
 				delete_finished_jobs_from_list();
-				return 0;
 			}
 		}
 
@@ -293,7 +284,7 @@ int ExeCmd(char* lineSize, char* cmdString)
 	/*************************************************/
 	else if (!strcmp(cmd, "bg")) 
 	{
-
+		add_cmd_to_history(cmdString);
 		if(num_arg>1){
 			illegal_cmd = true;
 		}
@@ -301,8 +292,13 @@ int ExeCmd(char* lineSize, char* cmdString)
 			if(num_arg == 0){ //take last job
 				delete_finished_jobs_from_list();
 				Job last_job = jobs.back(); //get last job
-				if(last_job.stop_f == false){ // the last job is ruuning in background - error
-					printf("ERROR: The job is already running in background\n");
+				if(last_job.stop_f == false && !jobs.empty()){ // the last job is ruuning in background - error
+					printf("smash error: > \"bg\" - The job is already running in background\n");
+					return 1;
+				}
+				else if(jobs.empty()){
+					printf("smash error: > \"bg\" - no jobs in list\n") ;
+					return 1;
 				}
 				else{ //resume the last job (stopped) to run in background
 					cout << last_job.name << "\n";
@@ -324,8 +320,9 @@ int ExeCmd(char* lineSize, char* cmdString)
 						break;
 					}
 				}
-				if(selected_job.stop_f == false){ // the last job is ruuning in background - error
-					printf("ERROR: The job is already running in background\n");
+				if(selected_job.stop_f == false && jobs.empty()==false){ // the job is ruuning in background - error
+					printf("smash error: > \"bg\" - The job is already running in background\n");
+					return 1;
 				}
 				else{ //resume the job (stopped) to run in background
 					//cout << "continue" << "\n";
@@ -334,13 +331,15 @@ int ExeCmd(char* lineSize, char* cmdString)
 					kill(selected_job.pid, SIGCONT);
 				}
 				if(selected_job.pid == 0){
-					if(index == 0){
-						printf("ERROR: no jobs in list") ;
+					if(jobs.empty()){
+						printf("smash error: >  \"bg\" - no jobs in list\n") ;
+						return 1;
 					}
 					else{
-					printf("ERROR: job does not exist, did you mean job [%d] (last job in list)\n",index) ;
+						printf("smash error: > \"bg\" - job does not exist, did you mean job [%d] (last job in list)\n",index) ;
+						return 1;
 					}
-					return 1; // ******UNCOMMEN THIS LINE AFTER DONE DEBUGGING ******
+					 // ******UNCOMMEN THIS LINE AFTER DONE DEBUGGING ******
 				}
 				cout << selected_job.name << "\n";
 
@@ -398,14 +397,15 @@ int ExeCmd(char* lineSize, char* cmdString)
 	/*************************************************/
 	else if (!strcmp(cmd, "diff"))
 	{
+		add_cmd_to_history(cmdString);
 		if(num_arg == 2){
 			FILE *file1;
 			FILE *file2;
 			file1 = fopen(args[1], "r");
 			file2 = fopen(args[2], "r");
-			add_cmd_to_history(cmdString);
 			if(file1 == NULL || file2 == NULL){
-				perror("Error: One of the files does not exist");
+				perror("smash error");
+				return 1;
 			}
 			while(1){
 				char word1;
@@ -430,7 +430,7 @@ int ExeCmd(char* lineSize, char* cmdString)
 		else{
 			illegal_cmd = true;
 		}
-		return 1;
+
 	}
 	/*************************************************/
 	else // external command
@@ -466,7 +466,7 @@ void ExeExternal(char *args[MAX_ARG], char* cmdString)
         	case 0 :
                 	// Child Process
                		setpgrp();
-					
+
 			        // Add your code here (execute an external command)
 					execvp(args[0],args);
 					perror("ERROR"); //get here only if exec returns
@@ -477,7 +477,9 @@ void ExeExternal(char *args[MAX_ARG], char* cmdString)
 					*/
 
 			default:
-                Job new_job(jobs, args[0],pID);
+				add_cmd_to_history(cmdString);
+
+				Job new_job(jobs, args[0],pID);
 				new_job.stop_f = false;
 
                 jobs.push_back(new_job);
@@ -499,7 +501,7 @@ void ExeExternal(char *args[MAX_ARG], char* cmdString)
 // Parameters: command string, pointer to jobs
 // Returns: 0- BG command -1- if not
 //**************************************************************************************
-int BgCmd(char* lineSize)
+int BgCmd(char* lineSize, char* cmdString )
 {
 
 
@@ -551,6 +553,7 @@ int BgCmd(char* lineSize)
 							break;
 
 					default:
+						add_cmd_to_history(cmdString);
 						string bg(args[0]);
 						 Job new_bg_job(jobs,bg,pID);
 
