@@ -218,6 +218,7 @@ int ExeCmd(char* lineSize, char* cmdString)
 	/*************************************************/
 	else if (!strcmp(cmd, "showpid")) 
 	{
+		add_cmd_to_history(cmdString);
 		if(num_arg ==0){
 			cout << "smash pid is " << getpid() <<endl;
 			return 0;
@@ -408,24 +409,29 @@ int ExeCmd(char* lineSize, char* cmdString)
 				return 1;
 			}
 			while(1){
-				char word1;
-				char word2;
+				int word1;
+				int word2;
 				word1 = fgetc(file1);
 				word2 = fgetc(file2);
 				if(feof(file1) == ~feof(file2)){
 					cout << "1" << endl;
 					break;
 				}
-				else if (~feof(file1) && ~feof(file2)){
+				else {
 					if(word1 != word2){
 						cout << "1" << endl;
 						break;
 					}
+					else{
+						if (feof(file1) == feof(file2)){
+							cout << "0" << endl;
+							break;
+						}
+					}
 				}
-				else {
-					cout << "0" << endl;
-				}
-			} 		
+			}
+			fclose(file1);
+			fclose(file2);
 		}
 		else{
 			illegal_cmd = true;
